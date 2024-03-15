@@ -1,0 +1,12 @@
+version: "3.7"
+
+services:
+
+  nginx:
+    image: nginx
+    init: true
+    restart: on-failure
+    ports:
+    - 8765:80
+    volumes:
+    - .:/usr/share/nginx/html:cached,ro
