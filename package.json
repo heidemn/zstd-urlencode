@@ -9,6 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@bokuweb/zstd-wasm": "^0.0.20",
+    "fflate": "^0.8.2",
     "http-server": "^14.1.1"
   }
 }
