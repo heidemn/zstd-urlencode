@@ -127,6 +127,7 @@ export default router`;
   // ZLIB    389
   // DEFLATE 383
   // BROTLI  348 bytes
+  // ZSTD    ___ TODO  - https://www.npmjs.com/package/@oneidentity/zstd-js (this one only decompresses: https://www.npmjs.com/package/fzstd)
 })();
 
 function base64ToBytes(base64) {
