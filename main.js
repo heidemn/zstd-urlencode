@@ -9,6 +9,8 @@ const brotli = await brotliPromise; // Import is async in browsers due to wasm r
 
 // const brotli = await import("https://unpkg.com/brotli-wasm@3.0.0/index.web.js?module").then(m => m.default);
 
+import { Base64 } from 'js-base64';
+
 export const vue = createApp({
   template: /*html*/`<router-view />`
 })
@@ -114,9 +116,65 @@ export default router`;
   // console.log('decompressedStr', decompressedStr);
   console.assert(decompressedStr === toCompressStr, 'BROTLI not equal');
 
+  const compressedStr = compressForUrl(toCompressStr);
+  console.log('compressed (url)', compressedStr.length, compressedStr);
+  decompressedStr = decompressFromUrl(compressedStr);
+  console.log('decompressed (url)', decompressedStr.length /*, decompressedStr*/);
+  console.assert(decompressedStr === toCompressStr, 'URL not equal');
+
   // Results:
   // GZIP    401
   // ZLIB    389
   // DEFLATE 383
   // BROTLI  348 bytes
 })();
+
+function base64ToBytes(base64) {
+  const binString = atob(base64);
+  return Uint8Array.from(binString, (m) => m.codePointAt(0));
+  // return Base64.toUint8Array(base64); // both ways work, at least for small strings
+}
+
+function bytesToBase64(bytes) {
+  const binString = Array.from(bytes, (byte) =>
+    String.fromCodePoint(byte),
+  ).join("");
+  return btoa(binString);
+  // return Base64.fromUint8Array(bytes); // both ways work, at least for small strings
+}
+
+function compressForUrl(s, /*for testing*/ brotliPenalty) {
+  brotliPenalty = brotliPenalty || 0;
+  const toCompress = (typeof s === 'string') ? new TextEncoder().encode(s) : s;
+  console.assert(toCompress instanceof Uint8Array, 'string or Uint8Array expected!');
+
+  const compressedDeflate = deflateSync(toCompress, { level: 9 });
+  const compressedBrotli = brotli.compress(toCompress, { quality: 11 });
+
+  let compressedEncoded;
+  if (compressedDeflate.byteLength < compressedBrotli.byteLength + brotliPenalty) {
+    console.log(compressedDeflate.byteLength, 'Deflate bytes');
+    compressedEncoded = 'D' + bytesToBase64(compressedDeflate); // unexpected, for most input strings
+  } else {
+    console.log(compressedBrotli.byteLength, 'Brotli bytes');
+    compressedEncoded = 'B' + bytesToBase64(compressedBrotli); // expected
+  }
+  // base64 -> base64url
+  compressedEncoded = compressedEncoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return compressedEncoded;
+}
+
+function decompressFromUrl(s, asString) {
+  const deflate = s.startsWith('D');
+  s = s.substring(1);
+
+  const base64Encoded = s.replace(/-/g, '+').replace(/_/g, '/');
+  const padding = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4));
+  const base64WithPadding = base64Encoded + padding;
+
+  const compressed = base64ToBytes(base64WithPadding);
+  console.log(compressed.byteLength, deflate ? 'Deflate' : 'Brotli', 'bytes to decompress');
+  const decompressed = deflate ? inflateSync(compressed) : brotli.decompress(compressed);
+
+  return asString === false ? decompressed : new TextDecoder().decode(decompressed);
+}
