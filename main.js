@@ -4,12 +4,14 @@ import store from './store.js'
 
 // import { init, compress, decompress } from '@bokuweb/zstd-wasm';
 import { zlibSync, unzlibSync, gzipSync, gunzipSync, deflateSync, inflateSync } from 'fflate';
+import {ZstdInit} from '@oneidentity/zstd-js';
+const {ZstdSimple, ZstdStream} = await ZstdInit();
 import brotliPromise from 'brotli-wasm'; // Import the default export
 const brotli = await brotliPromise; // Import is async in browsers due to wasm requirements!
 
 // const brotli = await import("https://unpkg.com/brotli-wasm@3.0.0/index.web.js?module").then(m => m.default);
 
-import { Base64 } from 'js-base64';
+// import { Base64 } from 'js-base64';
 
 export const vue = createApp({
   template: /*html*/`<router-view />`
@@ -116,6 +118,14 @@ export default router`;
   // console.log('decompressedStr', decompressedStr);
   console.assert(decompressedStr === toCompressStr, 'BROTLI not equal');
 
+  compressed = ZstdSimple.compress(toCompress, 22);
+  console.log('compressed ZSTD', compressed.byteLength, compressed);
+  decompressed = ZstdSimple.decompress(compressed);
+  console.log('decompressed', decompressed);
+  decompressedStr = new TextDecoder().decode(decompressed);
+  // console.log('decompressedStr', decompressedStr);
+  console.assert(decompressedStr === toCompressStr, 'ZSTD not equal');
+
   const compressedStr = compressForUrl(toCompressStr);
   console.log('compressed (url)', compressedStr.length, compressedStr);
   decompressedStr = decompressFromUrl(compressedStr);
@@ -123,11 +133,11 @@ export default router`;
   console.assert(decompressedStr === toCompressStr, 'URL not equal');
 
   // Results:
+  // ZSTD    412
   // GZIP    401
   // ZLIB    389
   // DEFLATE 383
   // BROTLI  348 bytes
-  // ZSTD    ___ TODO  - https://www.npmjs.com/package/@oneidentity/zstd-js (this one only decompresses: https://www.npmjs.com/package/fzstd)
 })();
 
 function base64ToBytes(base64) {
