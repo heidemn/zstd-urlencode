@@ -13,7 +13,7 @@
   "dependencies": {
     "@bokuweb/zstd-wasm": "^0.0.20",
     "@oneidentity/zstd-js": "^1.0.3",
-    "brotli-wasm": "^3.0.0",
+    "brotli-wasm": "^3.0.1",
     "fflate": "^0.8.2",
     "http-server": "^14.1.1",
     "js-base64": "^3.7.7",
